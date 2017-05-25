@@ -77,7 +77,15 @@ def run():
 
 
 def get_model(n_vx_vars, n_trk_var):
+    """
+    Make the model
 
+    Args:
+        n_vx_vars (int): The number of jet variables
+        n_trk_var (int): The number of track variables
+    Returns:
+        model (Keras Model): The model
+    """
     # setup inputs
     tracks = layers.Input(shape=(60, n_trk_var), name='tracks')
     vertex = layers.Input(shape=(n_vx_vars,), name='vertices')
