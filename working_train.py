@@ -27,13 +27,49 @@ def flatten(ds):
     Returns a flattened NumPy array
 
     Args:
-        ds (structured NumPy array): A structured n dimensional array
+        ds (structured NumPy array): A structured array
     Returns:
         flat (non-structured NumPy array): A "flattened" array of floats with
                      additional dimension to represent fields in the structure
     """
     ftype = [(n, float) for n in ds.dtype.names]
     return ds.astype(ftype).view(float).reshape(ds.shape + (-1,))
+
+
+def get_model(n_vx_vars, n_trk_var):
+    """
+    Make the model
+
+    Args:
+        n_vx_vars (int): The number of jet variables
+        n_trk_var (int): The number of track variables
+    Returns:
+        model (Keras Model): The model
+    """
+
+    # setup inputs
+    tracks = layers.Input(shape=(60, n_trk_var), name='tracks')
+    vertex = layers.Input(shape=(n_vx_vars,), name='vertices')
+
+    # add GRU to process tracks
+    gru = layers.GRU(5)(tracks)
+
+    # merge with the vertex inputs and feed to a dense layer
+    merged = layers.concatenate([gru, vertex])
+    dense = layers.Dense(10, activation='relu')(merged)
+
+    # add flavors output
+    flavor = layers.Dense(4, activation='softmax', name='flavor')(dense)
+
+    # add charge output
+    charge = layers.Dense(1, name='charge')(dense)
+
+    # build and compile the model
+    model = Model(inputs=[tracks, vertex], outputs=[flavor, charge])
+    model.compile(optimizer='adam',
+                  loss=['categorical_crossentropy', 'mean_squared_error'],
+                  metrics=['accuracy', 'accuracy'])
+    return model
 
 
 def run():
@@ -74,41 +110,6 @@ def run():
     #     print(trk.shape, jets.shape, targets.shape, charge.shape)
 
     model.fit_generator(generate(), steps_per_epoch=1000)
-
-
-def get_model(n_vx_vars, n_trk_var):
-    """
-    Make the model
-
-    Args:
-        n_vx_vars (int): The number of jet variables
-        n_trk_var (int): The number of track variables
-    Returns:
-        model (Keras Model): The model
-    """
-    # setup inputs
-    tracks = layers.Input(shape=(60, n_trk_var), name='tracks')
-    vertex = layers.Input(shape=(n_vx_vars,), name='vertices')
-
-    # add GRU to process tracks
-    gru = layers.GRU(5)(tracks)
-
-    # merge with the vertex inputs and feed to a dense layer
-    merged = layers.concatenate([gru, vertex])
-    dense = layers.Dense(10, activation='relu')(merged)
-
-    # add flavors output
-    flavor = layers.Dense(4, activation='softmax', name='flavor')(dense)
-
-    # add charge output
-    charge = layers.Dense(1, name='charge')(dense)
-
-    # build and compile the model
-    model = Model(inputs=[tracks, vertex], outputs=[flavor, charge])
-    model.compile(optimizer='adam',
-                  loss=['categorical_crossentropy', 'mean_squared_error'],
-                  metrics=['accuracy', 'accuracy'])
-    return model
 
 if __name__ == '__main__':
     run()
