@@ -37,6 +37,15 @@ def flatten(ds):
 
 
 def run():
+    """
+    Train the model
+
+    Args:
+        None --- argumetns are supplied through get_args()
+
+    Returns:
+        None
+    """
     args = get_args()
 
     jet_vars = ['pt', 'eta']
